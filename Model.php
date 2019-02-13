@@ -4,6 +4,7 @@ namespace Kolirt\MasterModel;
 
 use Illuminate\Database\Eloquent\Model as BaseModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class Model extends BaseModel
@@ -14,14 +15,32 @@ class Model extends BaseModel
     public function fill(array $attributes)
     {
 
+
         foreach ($attributes as $key => $value) {
-            if ($value instanceof UploadedFile) {
-                if (in_array($key, $this->getFillable())) {
+            if (in_array($key, $this->getFillable())) {
+                if ($value instanceof UploadedFile) {
                     if ($value->isValid()) {
                         $imageName = randomName(time()) . '.' . $value->extension();
                         $value->move(public_path('/uploads/' . mb_strtolower(class_basename($this)) . '/'), $imageName);
                         $attributes[$key] = env('APP_URL') . '/uploads/' . mb_strtolower(class_basename($this)) . '/' . $imageName;
+
+                        try {
+                            $path = str_replace(env('APP_URL'), '', $this->$key);
+                            if (file_exists(public_path($path)) && !is_dir(public_path($path)))
+                                unlink(public_path() . $path);
+                        } catch (\Exception $e) {
+                            Log::error($e);
+                        }
                     }
+                }
+
+                try {
+                    $path = str_replace(env('APP_URL'), '', $this->$key);
+                    if ($value != $this->$key && file_exists(public_path($path)) && $path) {
+                        unlink(public_path() . $path);
+                    }
+                } catch (\Exception $e) {
+                    Log::error($e);
                 }
             }
         }
