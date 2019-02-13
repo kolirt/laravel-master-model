@@ -20,7 +20,7 @@ class Model extends BaseModel
                     if ($value->isValid()) {
                         $imageName = randomName(time()) . '.' . $value->extension();
                         $value->move(public_path('/uploads/' . mb_strtolower(class_basename($this)) . '/'), $imageName);
-                        $attributes[$key] = '/uploads/' . mb_strtolower(class_basename($this)) . '/' . $imageName;
+                        $attributes[$key] = env('APP_URL') . '/uploads/' . mb_strtolower(class_basename($this)) . '/' . $imageName;
                     }
                 }
             }
@@ -92,7 +92,8 @@ class Model extends BaseModel
             $saved = parent::save($options);
         }
 
-        if ($saved) $this->fireModelEvent('saved', false);
+        if ($saved)
+            $this->fireModelEvent('saved', false);
 
         return $saved;
     }
