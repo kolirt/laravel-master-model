@@ -12,12 +12,30 @@ class Model extends BaseModel
 
     public $relationsToSave = [];
 
-    /*public function delete()
+
+    /**
+     * Delete the model from the database.
+     *
+     * @return bool|null
+     *
+     * @throws \Exception
+     */
+    public function delete()
     {
-        dd($this->trashed());
+        foreach ($this->attributes as $key => $field) {
+            if (in_array($key, $this->getFillable())) {
+                try {
+                    $path = str_replace(env('APP_URL'), '', $field);
+                    if (file_exists(public_path($path)) && !is_dir(public_path($path)))
+                        unlink(public_path() . $path);
+                } catch (\Exception $e) {
+                    Log::error($e);
+                }
+            }
+        }
 
         return parent::delete();
-    }*/
+    }
 
     /**
      * Fill the model with an array of attributes.
@@ -129,9 +147,6 @@ class Model extends BaseModel
         } else {
             $saved = parent::save($options);
         }
-
-        if ($saved)
-            $this->fireModelEvent('saved', false);
 
         return $saved;
     }
