@@ -139,17 +139,6 @@ class Model extends BaseModel
     public function isSoftDeletes()
     {
         return in_array('Illuminate\\Database\\Eloquent\\SoftDeletes', class_uses($this));
-
-        if (method_exists($this, 'withTrashed'))
-            return true;
-
-        return false;
-    }
-
-
-    public function usesSoftDeleted($class)
-    {
-        return;
     }
 
 }
