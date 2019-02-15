@@ -1,7 +1,7 @@
 {
   "name": "kolirt/laravel-master-model",
   "license": "MIT",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "authors": [
     {
       "name": "Asan Abdurakhmanov",
@@ -11,7 +11,7 @@
   "require": {},
   "autoload": {
     "psr-4": {
-      "Kolirt\\MasterModel\\": ""
+      "Kolirt\\MasterModel\\": "src"
     }
   }
 }

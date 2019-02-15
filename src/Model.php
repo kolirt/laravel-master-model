@@ -12,10 +12,23 @@ class Model extends BaseModel
 
     public $relationsToSave = [];
 
+    /*public function delete()
+    {
+        dd($this->trashed());
+
+        return parent::delete();
+    }*/
+
+    /**
+     * Fill the model with an array of attributes.
+     *
+     * @param  array $attributes
+     * @return $this
+     *
+     * @throws \Illuminate\Database\Eloquent\MassAssignmentException
+     */
     public function fill(array $attributes)
     {
-
-
         foreach ($attributes as $key => $value) {
             if (in_array($key, $this->getFillable())) {
                 if ($value instanceof UploadedFile) {
@@ -60,6 +73,12 @@ class Model extends BaseModel
         return $model;
     }
 
+    /**
+     * Save the model to the database.
+     *
+     * @param  array $options
+     * @return bool
+     */
     public function save(array $options = [])
     {
         if ($this->relationsToSave) {
@@ -115,6 +134,22 @@ class Model extends BaseModel
             $this->fireModelEvent('saved', false);
 
         return $saved;
+    }
+
+    public function isSoftDeletes()
+    {
+        return in_array('Illuminate\\Database\\Eloquent\\SoftDeletes', class_uses($this));
+
+        if (method_exists($this, 'withTrashed'))
+            return true;
+
+        return false;
+    }
+
+
+    public function usesSoftDeleted($class)
+    {
+        return;
     }
 
 }
