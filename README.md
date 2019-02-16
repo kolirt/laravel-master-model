@@ -1,4 +1,4 @@
-# Laravel Master Model 1.0.5
+# Laravel Master Model 1.0.6
 
 Package will help for easing save relations and upload images.
 

@@ -1,7 +1,15 @@
 {
   "name": "kolirt/laravel-master-model",
+  "description": "Package will help for easing save relations and upload images.",
+  "keywords": [
+    "framework",
+    "laravel",
+    "relations",
+    "upload",
+    "images"
+  ],
   "license": "MIT",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "authors": [
     {
       "name": "Asan Abdurakhmanov",
