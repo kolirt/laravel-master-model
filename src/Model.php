@@ -22,14 +22,25 @@ class Model extends BaseModel
      */
     public function delete()
     {
-        foreach ($this->attributes as $key => $field) {
-            if (in_array($key, $this->getFillable())) {
-                try {
-                    $path = str_replace(env('APP_URL'), '', $field);
-                    if (file_exists(public_path($path)) && !is_dir(public_path($path)))
-                        unlink(public_path() . $path);
-                } catch (\Exception $e) {
-                    Log::error($e);
+        $delete = false;
+
+        if ($this->isSoftDeletes()) {
+            if ($this->trashed())
+                $delete = true;
+        } else {
+            $delete = true;
+        }
+
+        if ($delete) {
+            foreach ($this->attributes as $key => $field) {
+                if (in_array($key, $this->getFillable())) {
+                    try {
+                        $path = str_replace(env('APP_URL'), '', $field);
+                        if (file_exists(public_path($path)) && !is_dir(public_path($path)))
+                            unlink(public_path() . $path);
+                    } catch (\Exception $e) {
+                        Log::error($e);
+                    }
                 }
             }
         }

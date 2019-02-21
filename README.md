@@ -1,11 +1,11 @@
-# Laravel Master Model 1.0.6
+# Laravel Master Model 1.0.7
 
 Package will help for easing save relations and upload images.
 
 ## Installation
 
 ```
-composer require kolirt/laravel-master-model
+$ composer require kolirt/laravel-master-model
 ```
 
 ## Usage
