@@ -2,16 +2,14 @@
 
 namespace Kolirt\MasterModel;
 
-use Illuminate\Database\Eloquent\Model as BaseModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-class Model extends BaseModel
+trait MastreModel
 {
 
     public $relationsToSave = [];
-
 
     /**
      * Delete the model from the database.

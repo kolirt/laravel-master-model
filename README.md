@@ -1,4 +1,4 @@
-# Laravel Master Model 1.0.7
+# Laravel Master Model 1.1.0
 
 Package will help for easing save relations and upload images.
 
@@ -10,7 +10,7 @@ $ composer require kolirt/laravel-master-model
 
 ## Usage
 
-You need to extend your model from `Kolirt\MasterModel\Model`.
+You need to use trait in your model from `Kolirt\MasterModel\Model`.
 
 ## Example
 
@@ -21,10 +21,14 @@ Provider.php
 
 namespace App\Models;
 
-use Kolirt\MasterModel\Model;
+use Illuminate\Database\Eloquent\Model;
+use Kolirt\MasterModel\MastreModel;
 
 class Provider extends Model
 {
+
+    use MastreModel;
+
     protected $fillable = [
         'name',
         'city',
@@ -52,10 +56,14 @@ ProviderContact.php
 
 namespace App\Models;
 
-use Kolirt\MasterModel\Model;
+use Illuminate\Database\Eloquent\Model;
+use Kolirt\MasterModel\MastreModel;
 
 class ProviderContact extends Model
 {
+
+    use MastreModel;
+
     protected $fillable = [
         'name',
         'phone',
