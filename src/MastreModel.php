@@ -62,8 +62,14 @@ trait MastreModel
             if (in_array($key, $this->getFillable())) {
                 if ($value instanceof UploadedFile) {
                     if ($value->isValid()) {
+                        $dir = public_path('/uploads/' . mb_strtolower(class_basename($this)) . '/');
+
+                        if (!is_dir($dir)) {
+                            mkdir($dir, 0755);
+                        }
+
                         $imageName = uniqid(time()) . '.' . $value->extension();
-                        $value->move(public_path('/uploads/' . mb_strtolower(class_basename($this)) . '/'), $imageName);
+                        $value->move($dir, $imageName);
                         $attributes[$key] = env('APP_URL') . '/uploads/' . mb_strtolower(class_basename($this)) . '/' . $imageName;
 
                         try {
