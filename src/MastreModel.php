@@ -65,7 +65,7 @@ trait MastreModel
                         $dir = public_path('/uploads/' . mb_strtolower(class_basename($this)) . '/');
 
                         if (!is_dir($dir)) {
-                            mkdir($dir, 0755);
+                            mkdir($dir, 0755, true);
                         }
 
                         $imageName = uniqid(time()) . '.' . $value->extension();
