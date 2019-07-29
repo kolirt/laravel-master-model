@@ -2,7 +2,10 @@
 
 namespace Kolirt\MasterModel;
 
+use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -49,10 +52,10 @@ trait MastreModel
     /**
      * Fill the model with an array of attributes.
      *
-     * @param  array $attributes
+     * @param array $attributes
      * @return $this
      *
-     * @throws \Illuminate\Database\Eloquent\MassAssignmentException
+     * @throws MassAssignmentException
      */
     public function fill(array $attributes)
     {
@@ -60,8 +63,14 @@ trait MastreModel
             if (in_array($key, $this->getFillable())) {
                 if ($value instanceof UploadedFile) {
                     if ($value->isValid()) {
-                        $imageName = randomName(time()) . '.' . $value->extension();
-                        $value->move(public_path('/uploads/' . mb_strtolower(class_basename($this)) . '/'), $imageName);
+                        $dir = public_path('/uploads/' . mb_strtolower(class_basename($this)) . '/');
+
+                        if (!is_dir($dir)) {
+                            mkdir($dir, 0755, true);
+                        }
+
+                        $imageName = uniqid(time()) . '.' . $value->extension();
+                        $value->move($dir, $imageName);
                         $attributes[$key] = env('APP_URL') . '/uploads/' . mb_strtolower(class_basename($this)) . '/' . $imageName;
 
                         try {
@@ -91,7 +100,7 @@ trait MastreModel
             if (!in_array($key, ['save']) && method_exists($this, $key)) {
                 $relation = $model->$key();
 
-                if ($relation instanceof HasMany) {
+                if ($relation instanceof HasMany || $relation instanceof MorphToMany || $relation instanceof BelongsToMany) {
                     $this->relationsToSave[$key] = [$relation, $value];
                 }
             }
@@ -103,8 +112,9 @@ trait MastreModel
     /**
      * Save the model to the database.
      *
-     * @param  array $options
+     * @param array $options
      * @return bool
+     * @throws \Exception
      */
     public function save(array $options = [])
     {
@@ -140,7 +150,7 @@ trait MastreModel
                         if ($data !== null) {
                             $relation->createMany($data);
                         }
-                    } else if ($relation instanceof BelongsToMany) {
+                    } else if ($relation instanceof BelongsToMany || $relation instanceof MorphToMany || $relation instanceof BelongsToMany) {
                         $relation->sync([]);
                         if ($data !== null && is_array($data)) {
                             $relation->sync($data);
