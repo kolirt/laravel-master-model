@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-trait MastreModel
+trait MasterModel
 {
 
     public $relationsToSave = [];

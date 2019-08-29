@@ -22,12 +22,12 @@ Provider.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Kolirt\MasterModel\MastreModel;
+use Kolirt\MasterModel\MasterModel;
 
 class Provider extends Model
 {
 
-    use MastreModel;
+    use MasterModel;
 
     protected $fillable = [
         'name',
@@ -57,12 +57,12 @@ ProviderContact.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Kolirt\MasterModel\MastreModel;
+use Kolirt\MasterModel\MasterModel;
 
 class ProviderContact extends Model
 {
 
-    use MastreModel;
+    use MasterModel;
 
     protected $fillable = [
         'name',
