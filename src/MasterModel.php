@@ -104,10 +104,14 @@ trait MasterModel
                 if (
                     $relation instanceof HasMany ||
                     $relation instanceof MorphToMany ||
-                    $relation instanceof BelongsToMany ||
-                    $relation instanceof HasOne
+                    $relation instanceof BelongsToMany
                 ) {
                     $this->relationsToSave[$key] = [$relation, $value];
+                } else if ($relation instanceof HasOne) {
+                    $relation = $model->$key;
+                    if ($relation) {
+                        $this->relationsToSave[$key] = [$relation, $value];
+                    }
                 }
             }
         }
