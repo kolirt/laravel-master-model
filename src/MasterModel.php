@@ -5,6 +5,7 @@ namespace Kolirt\MasterModel;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -100,7 +101,12 @@ trait MasterModel
             if (!in_array($key, ['save']) && method_exists($this, $key)) {
                 $relation = $model->$key();
 
-                if ($relation instanceof HasMany || $relation instanceof MorphToMany || $relation instanceof BelongsToMany) {
+                if (
+                    $relation instanceof HasMany ||
+                    $relation instanceof MorphToMany ||
+                    $relation instanceof BelongsToMany ||
+                    $relation instanceof HasOne
+                ) {
                     $this->relationsToSave[$key] = [$relation, $value];
                 }
             }
@@ -155,6 +161,8 @@ trait MasterModel
                         if ($data !== null && is_array($data)) {
                             $relation->sync($data);
                         }
+                    } else if ($relation instanceof HasOne) {
+                        $relation->update($data);
                     }
                 }
 
