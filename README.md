@@ -1,6 +1,6 @@
 # Laravel Master Model
 
-Package will help for easing save relations and upload images.
+Package will help for easing save relations and upload files.
 
 ## Installation
 
@@ -103,7 +103,7 @@ class ExampleController extends Controller
             'city' => 'Little Rock',
             'address' => '1231  Fittro Street',
             'postcode' => '72210',
-            'image' => '', // UploadedFile or path to image
+            'image' => '', // UploadedFile or path to file
             'active' => true,
             'agents' => [ // relation
                 [
