@@ -113,7 +113,13 @@ trait MasterModel
                     $this->relationsToSave[$key] = [$relation, $value];
                 } else if ($relation instanceof BelongsTo) {
                     $foreignKeyName = $relation->getForeignKeyName();
-                    $newAttributes[$foreignKeyName] = $value;
+                    if (is_object($value)) {
+                        if (method_exists($value, 'getKey')) {
+                            $newAttributes[$foreignKeyName] = $value->getKey();
+                        }
+                    } else {
+                        $newAttributes[$foreignKeyName] = $value;
+                    }
                 }
             }
         }
