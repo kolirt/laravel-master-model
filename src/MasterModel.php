@@ -3,6 +3,7 @@
 namespace Kolirt\MasterModel;
 
 use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -14,6 +15,7 @@ trait MasterModel
 {
 
     public $relationsToSave = [];
+    public $priorityRelationsToSave = [];
 
     /**
      * Delete the model from the database.
@@ -95,11 +97,12 @@ trait MasterModel
             }
         }
 
-        $model = parent::fill(array_only($attributes, $this->fillable));
+        $newAttributes = array_only($attributes, $this->fillable);
 
         foreach ($attributes as $key => $value) {
+
             if (!in_array($key, ['save']) && method_exists($this, $key)) {
-                $relation = $model->$key();
+                $relation = $this->$key();
 
                 if (
                     $relation instanceof HasMany ||
@@ -108,9 +111,14 @@ trait MasterModel
                     $relation instanceof HasOne
                 ) {
                     $this->relationsToSave[$key] = [$relation, $value];
+                } else if ($relation instanceof BelongsTo) {
+                    $foreignKeyName = $relation->getForeignKeyName();
+                    $newAttributes[$foreignKeyName] = $value;
                 }
             }
         }
+
+        $model = parent::fill($newAttributes);
 
         return $model;
     }
@@ -124,55 +132,51 @@ trait MasterModel
      */
     public function save(array $options = [])
     {
-        if ($this->relationsToSave) {
-            try {
-                \DB::beginTransaction();
+        try {
+            \DB::beginTransaction();
 
-                $saved = parent::save($options);
+            $saved = parent::save($options);
 
-                $relationsToSave = $this->relationsToSave;
-                $this->relationsToSave = [];
+            $relationsToSave = $this->relationsToSave;
+            $this->relationsToSave = [];
 
-                foreach ($relationsToSave as $key => $rel) {
-                    $relation = $rel[0];
-                    $data = $rel[1];
+            foreach ($relationsToSave as $key => $rel) {
+                $relation = $rel[0];
+                $data = $rel[1];
 
-                    if ($relation instanceof HasMany) {
-                        $relation_ids = array_pluck($data ?: [], 'id');
+                if ($relation instanceof HasMany) {
+                    $relation_ids = array_pluck($data ?: [], 'id');
 
-                        foreach ($data ?? [] as $i => $datum) {
-                            if (isset($datum['id']) && $datum['id']) {
-                                $related = $relation->getRelated()->where('id', $datum['id'])->first();
+                    foreach ($data ?? [] as $i => $datum) {
+                        if (isset($datum['id']) && $datum['id']) {
+                            $related = $relation->getRelated()->where('id', $datum['id'])->first();
 
-                                if ($related) {
-                                    $related->update($datum);
-                                    unset($data[$i]);
-                                }
+                            if ($related) {
+                                $related->update($datum);
+                                unset($data[$i]);
                             }
                         }
-
-                        $relation->whereNotIn('id', $relation_ids)->delete();
-
-                        if ($data !== null) {
-                            $relation->createMany($data);
-                        }
-                    } else if ($relation instanceof BelongsToMany || $relation instanceof MorphToMany || $relation instanceof BelongsToMany) {
-                        $relation->sync([]);
-                        if ($data !== null && is_array($data)) {
-                            $relation->sync($data);
-                        }
-                    } else if ($relation instanceof HasOne) {
-                        $relation->update($data);
                     }
-                }
 
-                \DB::commit();
-            } catch (\Exception $e) {
-                \DB::rollBack();
-                throw $e;
+                    $relation->whereNotIn('id', $relation_ids)->delete();
+
+                    if ($data !== null) {
+                        $relation->createMany($data);
+                    }
+                } else if ($relation instanceof BelongsToMany || $relation instanceof MorphToMany || $relation instanceof BelongsToMany) {
+                    $relation->sync([]);
+                    if ($data !== null && is_array($data)) {
+                        $relation->sync($data);
+                    }
+                } else if ($relation instanceof HasOne) {
+                    $relation->update($data);
+                }
             }
-        } else {
-            $saved = parent::save($options);
+
+            \DB::commit();
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            throw $e;
         }
 
         return $saved;
