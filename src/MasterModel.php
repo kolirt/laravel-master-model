@@ -164,7 +164,7 @@ trait MasterModel
                         }
                     }
 
-                    $relation->whereNotIn('id', $relation_ids)->delete();
+                    $relation->whereNotIn('id', array_filter($relation_ids))->delete();
 
                     if ($data !== null) {
                         $relation->createMany($data);
