@@ -16,6 +16,7 @@ trait MasterModel
 
     public $relationsToSave = [];
     public $priorityRelationsToSave = [];
+    public $files = [];
 
     /**
      * Delete the model from the database.
@@ -39,9 +40,9 @@ trait MasterModel
             foreach ($this->attributes as $key => $field) {
                 if (in_array($key, $this->getFillable())) {
                     try {
-                        $path = str_replace(env('APP_URL'), '', $field);
-                        if (file_exists(public_path($path)) && !is_dir(public_path($path)))
-                            unlink(public_path() . $path);
+                        $path = $field;
+                        if (file_exists(storage_path($path)) && !is_dir(storage_path($path)))
+                            unlink(storage_path() . $path);
                     } catch (\Exception $e) {
                         Log::error($e);
                     }
@@ -66,20 +67,24 @@ trait MasterModel
             if (in_array($key, $this->getFillable())) {
                 if ($value instanceof UploadedFile) {
                     if ($value->isValid()) {
-                        $dir = public_path('/uploads/' . mb_strtolower(class_basename($this)) . '/');
+                        $dir_path = '/app/public/uploads/' . mb_strtolower(class_basename($this)) . '/';
 
+                        $dir = storage_path($dir_path);
                         if (!is_dir($dir)) {
                             mkdir($dir, 0755, true);
                         }
 
                         $imageName = uniqid(time()) . '.' . $value->extension();
                         $value->move($dir, $imageName);
-                        $attributes[$key] = env('APP_URL') . '/uploads/' . mb_strtolower(class_basename($this)) . '/' . $imageName;
+                        $file_path = $dir_path . $imageName;
+                        $attributes[$key] = $file_path;
+                        $this->files[] = $file_path;
 
                         try {
-                            $path = str_replace(env('APP_URL'), '', $this->$key);
-                            if (file_exists(public_path($path)) && !is_dir(public_path($path)))
-                                unlink(public_path() . $path);
+                            $path = $this->$key;
+                            if (file_exists(storage_path($path)) && !is_dir(storage_path($path))) {
+                                unlink(storage_path() . $path);
+                            }
                         } catch (\Exception $e) {
                             Log::error($e);
                         }
@@ -87,9 +92,9 @@ trait MasterModel
                 }
 
                 try {
-                    $path = str_replace(env('APP_URL'), '', $this->$key);
-                    if ($value != $this->$key && file_exists(public_path($path)) && $path) {
-                        unlink(public_path() . $path);
+                    $path = $this->$key;
+                    if ($value != $this->$key && file_exists(storage_path($path)) && $path) {
+                        unlink(storage_path() . $path);
                     }
                 } catch (\Exception $e) {
                     Log::error($e);
@@ -104,12 +109,7 @@ trait MasterModel
             if (!in_array($key, ['save']) && method_exists($this, $key)) {
                 $relation = $this->$key();
 
-                if (
-                    $relation instanceof HasMany ||
-                    $relation instanceof MorphToMany ||
-                    $relation instanceof BelongsToMany ||
-                    $relation instanceof HasOne
-                ) {
+                if ($relation instanceof HasMany || $relation instanceof MorphToMany || $relation instanceof BelongsToMany || $relation instanceof HasOne) {
                     $this->relationsToSave[$key] = [$relation, $value];
                 } else if ($relation instanceof BelongsTo) {
                     $foreignKeyName = $relation->getForeignKeyName();
@@ -181,6 +181,16 @@ trait MasterModel
 
             \DB::commit();
         } catch (\Exception $e) {
+            foreach ($this->files as $file) {
+                try {
+                    $path = $file;
+                    if (file_exists(storage_path($path)) && !is_dir(storage_path($path))) {
+                        unlink(storage_path() . $path);
+                    }
+                } catch (\Exception $e) {
+                    Log::error($e);
+                }
+            }
             \DB::rollBack();
             throw $e;
         }
