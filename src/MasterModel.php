@@ -175,7 +175,16 @@ trait MasterModel
                         $relation->sync($data);
                     }
                 } else if ($relation instanceof HasOne) {
-                    $relation->update($data);
+                    $localKeyName = $relation->getLocalKeyName();
+                    if (isset($data[$localKeyName]) && $data[$localKeyName]) {
+                        $related = $relation->getRelated()->where($localKeyName, $data[$localKeyName])->first();
+                        if ($related) {
+                            unset($data[$localKeyName]);
+                            $related->update($data);
+                        }
+                    } else {
+                        $relation->create($data);
+                    }
                 }
             }
 
