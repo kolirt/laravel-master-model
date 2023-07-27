@@ -1,0 +1,30 @@
+{
+  "name": "kolirt/laravel-master-model",
+  "description": "Package will help for easing save relations and upload files.",
+  "keywords": [
+    "framework",
+    "laravel",
+    "relations",
+    "upload",
+    "images",
+    "files",
+    "auto",
+    "fill"
+  ],
+  "license": "MIT",
+  "version": "2.0.2",
+  "authors": [
+    {
+      "name": "kolirt"
+    }
+  ],
+  "require": {},
+  "autoload": {
+    "psr-4": {
+      "Kolirt\\MasterModel\\": "src"
+    },
+    "files": [
+      "src/helpers.php"
+    ]
+  }
+}
