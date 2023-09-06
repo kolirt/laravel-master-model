@@ -3,11 +3,13 @@
 namespace Kolirt\MasterModel;
 
 use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -30,19 +32,21 @@ trait MasterModel
         $delete = false;
 
         if ($this->isSoftDeletes()) {
-            if ($this->trashed())
+            if ($this->trashed()) {
                 $delete = true;
+            }
         } else {
             $delete = true;
         }
 
         if ($delete) {
             foreach ($this->attributes as $key => $field) {
-                if (in_array($key, $this->getFillable())) {
+                if ($this->isFillable($key)) {
                     try {
                         $path = $field;
-                        if (file_exists(storage_path($path)) && !is_dir(storage_path($path)))
+                        if (file_exists(storage_path($path)) && !is_dir(storage_path($path))) {
                             unlink(storage_path() . $path);
+                        }
                     } catch (\Exception $e) {
                         Log::error($e);
                     }
@@ -64,7 +68,7 @@ trait MasterModel
     public function fill(array $attributes)
     {
         foreach ($attributes as $key => $value) {
-            if (in_array($key, $this->getFillable())) {
+            if ($this->isFillable($key)) {
                 if ($value instanceof UploadedFile) {
                     if ($value->isValid()) {
                         $dir_path = '/app/public/uploads/' . mb_strtolower(class_basename($this)) . '/';
@@ -113,20 +117,18 @@ trait MasterModel
                     $this->relationsToSave[$key] = [$relation, $value];
                 } else if ($relation instanceof BelongsTo) {
                     $foreignKeyName = $relation->getForeignKeyName();
-                    if (is_object($value)) {
-                        if (method_exists($value, 'getKey')) {
-                            $newAttributes[$foreignKeyName] = $value->getKey();
-                        }
-                    } else {
+                    if ($value instanceof Model) {
+                        $newAttributes[$foreignKeyName] = $value->getKey();
+                    } else if (is_int($value)) {
                         $newAttributes[$foreignKeyName] = $value;
+                    } else if (is_array($value) || $value instanceof Collection) {
+                        $this->priorityRelationsToSave[$key] = [$relation, $value];
                     }
                 }
             }
         }
 
-        $model = parent::fill($newAttributes);
-
-        return $model;
+        return parent::fill($newAttributes);
     }
 
     /**
@@ -140,6 +142,29 @@ trait MasterModel
     {
         try {
             \DB::beginTransaction();
+
+            $priorityRelationsToSave = $this->priorityRelationsToSave;
+            $this->priorityRelationsToSave = [];
+            foreach ($priorityRelationsToSave as $key => $rel) {
+                $relation = $rel[0];
+                $data = $rel[1];
+
+                if ($relation instanceof BelongsTo) {
+                    $ownerKeyName = $relation->getOwnerKeyName();
+                    if (isset($data[$ownerKeyName]) && $data[$ownerKeyName]) {
+                        $related = $relation->getRelated()->where($ownerKeyName, $data[$ownerKeyName])->first();
+                        if ($related) {
+                            unset($data[$ownerKeyName]);
+                            $related->update($data);
+                        }
+                    } else {
+                        $item = $relation->create($data);
+                        $this->fill([
+                            $relation->getForeignKeyName() => $item->getKey()
+                        ]);
+                    }
+                }
+            }
 
             $saved = parent::save($options);
 
