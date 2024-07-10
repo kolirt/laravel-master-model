@@ -97,7 +97,7 @@ trait MasterModel
 
                 try {
                     $path = $this->$key;
-                    if ($value != $this->$key && file_exists(storage_path($path)) && $path) {
+                    if (is_string($path) && $value != $this->$key && file_exists(storage_path($path)) && $path) {
                         unlink(storage_path() . $path);
                     }
                 } catch (\Exception $e) {
