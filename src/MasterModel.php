@@ -18,7 +18,7 @@ trait MasterModel
 
     public $relationsToSave = [];
     public $priorityRelationsToSave = [];
-    public $files = [];
+    public $saved_file_paths = [];
 
     /**
      * Delete the model from the database.
@@ -82,7 +82,7 @@ trait MasterModel
                         $value->move($dir, $imageName);
                         $file_path = $dir_path . $imageName;
                         $attributes[$key] = $file_path;
-                        $this->files[] = $file_path;
+                        $this->saved_file_paths[] = $file_path;
 
                         try {
                             $path = $this->$key;
@@ -215,7 +215,7 @@ trait MasterModel
 
             \DB::commit();
         } catch (\Exception $e) {
-            foreach ($this->files as $file) {
+            foreach ($this->saved_file_paths as $file) {
                 try {
                     $path = $file;
                     if (file_exists(storage_path($path)) && !is_dir(storage_path($path))) {
