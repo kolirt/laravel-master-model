@@ -1,13 +1,12 @@
 # Laravel Master Model
-
 Laravel Master Model is a powerful package for the Laravel framework that simplifies working with models, particularly
-in **saving relationships** and **uploading files**.
+in **saving relations** and **uploading files**.
 
 This package is designed for developers who want to optimize the process of working with databases and files, reducing
 code complexity and enhancing performance.
 
-## Structure
 
+## Structure
 - [Getting started](#getting-started)
   - [Requirements](#requirements)
   - [Installation](#installation)
@@ -15,7 +14,7 @@ code complexity and enhancing performance.
 - [Console commands](#console-commands)
 - [Use cases](#use-cases)
   - [File saving](#file-saving)
-  - [Saving `HasOne` relationship](#saving-hasone-relationship)
+  - [Saving `HasOne` relation](#saving-hasone-relation)
 - [FAQ](#faq)
 - [License](#license)
 - [Other packages](#other-packages)
@@ -24,21 +23,21 @@ code complexity and enhancing performance.
   <img src="https://cdn.buymeacoffee.com/buttons/v2/arial-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
 </a>
 
+
 ## Getting started
 
 ### Requirements
-
 - PHP >= 8.1
 - Laravel >= 10
 
-### Installation
 
+### Installation
 ```bash
 composer require kolirt/laravel-master-model
 ```
 
-### Setup
 
+### Setup
 Publish config file
 
 ```bash
@@ -56,15 +55,15 @@ class Item extends Model
 }
 ```
 
-## Console commands
 
+## Console commands
 - `master-model:install` - Install master model package
 - `master-model:publish-config` - Publish the config file
 
+
 ## Use cases
 
-### File saving
-
+### Saving files
 ```php
 class Item extends Model
 {
@@ -118,64 +117,80 @@ class Item extends Model
 ```
 
 
-### Saving `HasOne` relationship
+### Saving `HasOne` relation
+You can **save** `HasOne` relation in the same way as a file. If relation exists, it will be updated, otherwise it will be created
 
 ```php
-class Item extends Model
-{
-    use MasterModel;
+$item = Item::query()->first();
 
-    protected $fillable = [
-        'image',
-    ];
-    
-    public function phone(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(ItemPhone::class);
-    }
-}
+$item->update([
+    'phone' => [ // hasOne relation
+        'number' => '1234567890'
+    ]
+]);
 ```
-You can **save** `HasOne` relationship in the same way as a file. If relationship exists, it will be updated, otherwise it will be created
+
+You can also **delete** the relation by setting it to `null`
 
 ```php
-class ExampleController extends Controller
-{
-    public function index(Request $request, $id)
-    {
-        $item = Item::query()->findOrFail($id);
-        $item->update([
-            'phone' => [
+$item = Item::query()->first();
+
+$item->update([
+    'phone' => null // hasOne relation
+]);
+```
+
+
+### Saving `HasMany` relations
+You can **save** `HasMany` relations in the same way as a file. If relations exists, it will be updated, otherwise it will be created
+
+```php
+$item = Item::query()->first();
+
+$item->update([
+    'phones' => [ // hasMany relations
+        [ // will be created
+            'number' => '1234567890'
+        ],
+        [ // will be updated (id = 1)
+            'id' => 1,
+            'number' => '0987654321'
+        ]
+    ]
+]);
+```
+
+
+### Saving `HasMany` relations with `sync` mode
+You can also **sync** `HasMany` relations. Unspecified relations will be deleted
+
+```php
+$item = Item::query()->first();
+
+$item->update([
+    'phones' => [ // hasMany relations
+        'mode' => 'sync', // not specified relations will be deleted
+        'value' => [
+            [ // will be created
                 'number' => '1234567890'
+            ],
+            [ // will be updated (id = 1)
+                'id' => 1,
+                'number' => '0987654321'
             ]
-        ]);
-    }
-}
-```
-
-You can also **delete** the relationship by setting it to `null`
-
-```php
-class ExampleController extends Controller
-{
-    public function index(Request $request, $id)
-    {
-        $item = Item::query()->findOrFail($id);
-        $item->update([
-            'phone' => null
-        ]);
-    }
-}
+        ]
+    ]
+]);
 ```
 
 
 ## FAQ
-
 Check closed [issues](https://github.com/kolirt/laravel-master-model/issues) to get answers for most asked questions
 
-## License
 
+## License
 [MIT](LICENSE.txt)
 
-## Other packages
 
+## Other packages
 Check out my other packages on my [GitHub profile](https://github.com/kolirt)

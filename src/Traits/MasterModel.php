@@ -5,7 +5,6 @@ namespace Kolirt\MasterModel\Traits;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 trait MasterModel
 {
@@ -93,7 +92,15 @@ trait MasterModel
                     $relation instanceof \Illuminate\Database\Eloquent\Relations\HasOne
                 ) {
                     $this->relations_to_save[] = [
-                        'key' => $key,
+                        'relation_name' => $key,
+                        'relation' => $relation,
+                        'value' => $value
+                    ];
+                } else if (
+                    $relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany
+                ) {
+                    $this->relations_to_save[] = [
+                        'relation_name' => $key,
                         'relation' => $relation,
                         'value' => $value
                     ];
@@ -151,47 +158,126 @@ trait MasterModel
             /**
              * Save relations
              */
-            foreach ($this->relations_to_save as $relation) {
+            foreach ($this->relations_to_save as $relation_to_save) {
+                [
+                    'relation_name' => $relation_name,
+                    'relation' => $relation,
+                    'value' => $value,
+                ] = $relation_to_save;
+
                 /*dd(
-                    $relation['relation']->getParentKey(),
-                    $relation['relation']->getForeignKeyName(),
-                    $relation['relation']->getLocalKeyName(),
-                    $relation['relation']->getExistenceCompareKey(),
-                    $relation['relation']->getQualifiedForeignKeyName(),
-                    $relation['relation']->getQualifiedParentKeyName(),
-                    $relation['value'],
+                    $relation->getParentKey(),
+                    $relation->getForeignKeyName(),
+                    $relation->getLocalKeyName(),
+                    $relation->getExistenceCompareKey(),
+                    $relation->getQualifiedForeignKeyName(),
+                    $relation->getQualifiedParentKeyName(),
+                    $value,
                 );*/
 
                 /**
                  * Save HasOne relation
                  */
                 if (
-                    $relation['relation'] instanceof \Illuminate\Database\Eloquent\Relations\HasOne
+                    $relation instanceof \Illuminate\Database\Eloquent\Relations\HasOne
                 ) {
-                    $parent = $relation['relation']->getParent();
-                    if (is_null($relation['value'])) {
-                        if ($parent->relationLoaded($relation['key'])) {
-                            $parent->{$relation['key']}?->delete();
+                    $parent = $relation->getParent();
+
+                    if (is_null($value)) {
+                        if (
+                            $parent->relationLoaded($relation_name) &&
+                            $parent->getRelation($relation_name)
+                        ) {
+                            $parent->getRelation($relation_name)->delete();
+                            $this->unsetRelation($relation_name);
                         } else {
-                            $relation['relation']->delete();
+                            $relation->delete();
                         }
                     } else {
                         if (
-                            $parent->relationLoaded($relation['key']) &&
-                            $parent->{$relation['key']}
+                            $parent->relationLoaded($relation_name) &&
+                            $parent->getRelation($relation_name)
                         ) {
-                            $parent->{$relation['key']}->update($relation['value']);
+                            $parent->getRelation($relation_name)->update($value);
                         } else {
-                            $relation_model = $relation['relation']->updateOrCreate(
-                                [
-                                    $relation['relation']->getForeignKeyName() => $relation['relation']->getParentKey()
-                                ],
-                                $relation['value']
-                            );
+                            $relation_model = $relation->getRelated()->newQuery()
+                                ->where($relation->getForeignKeyName(), $relation->getParentKey())
+                                ->first();
 
-                            $this->setRelation($relation['key'], $relation_model);
+                            if ($relation_model) {
+                                $relation_model->update($value);
+                            } else {
+                                $relation_model = $relation->create($value);
+                            }
+
+                            $this->setRelation($relation_name, $relation_model);
                         }
                     }
+
+                    continue;
+                }
+
+                /**
+                 * Save HasMany relation
+                 */
+                if (
+                    $relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany
+                ) {
+                    $mode = $value['mode'] ?? null;
+                    $value = $value['value'] ?? $value;
+
+                    $parent = $relation->getParent();
+                    $loaded_relations = match (true) {
+                        $parent->relationLoaded($relation_name) => $parent->getRelation($relation_name),
+                        $mode === 'sync' => $relation->get(),
+                        default => collect()
+                    };
+
+                    $values_to_update = array_filter($value, fn($item) => isset($item[$relation->getLocalKeyName()]));
+                    $new_values = array_filter($value, fn($item) => !isset($item[$relation->getLocalKeyName()]));
+
+                    $updated_items = collect();
+
+                    if (count($values_to_update)) {
+                        foreach ($values_to_update as $value_to_update) {
+                            $relation_model = $loaded_relations->firstWhere($relation->getLocalKeyName(), $value_to_update[$relation->getLocalKeyName()]);
+
+                            if (!$relation_model) {
+                                $relation_model = $relation
+                                    ->where($relation->getLocalKeyName(), $value_to_update[$relation->getLocalKeyName()])
+                                    ->first();
+                            }
+
+                            unset($value_to_update[$relation->getLocalKeyName()]);
+
+                            if ($relation_model) {
+                                $relation_model->update($value_to_update);
+                                $updated_items[] = $relation_model;
+                            } else {
+                                $new_values[] = $value_to_update;
+                            }
+                        }
+                    }
+
+                    if (count($new_values)) {
+                        $items = $relation->createMany($new_values);
+                        $loaded_relations->push(...$items);
+                        $updated_items->push(...$items);
+                    }
+
+                    if ($mode === 'sync') {
+                        $updated_items_keyed = collect($updated_items)->keyBy($relation->getLocalKeyName());
+
+                        $relations_to_delete = $loaded_relations->filter(function ($item) use ($relation, $updated_items_keyed) {
+                            return !$updated_items_keyed->has($item->getAttribute($relation->getLocalKeyName()));
+                        });
+                        $relations_to_delete->each->delete();
+
+                        $loaded_relations = $updated_items;
+                    }
+
+                    $this->setRelation($relation_name, $loaded_relations);
+                    continue;
                 }
             }
         } else {
