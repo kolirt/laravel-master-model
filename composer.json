@@ -1,6 +1,6 @@
 {
     "name": "kolirt/laravel-master-model",
-    "description": "Package will help for easing save relations and upload files.",
+    "description": "The package that simplifies working with models, saving relationships, and uploading files in Laravel",
     "type": "library",
     "keywords": [
         "framework",
