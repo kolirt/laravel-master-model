@@ -1,10 +1,14 @@
 <?php
 
-use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
-if (!function_exists('array_only')) {
-    function array_only($array, $keys)
+if (!function_exists('is_stored_file')) {
+    function is_stored_file(mixed $value): bool
     {
-        return Arr::only($array, $keys);
+        return
+            is_string($value) &&
+            Str::of($value)->startsWith(
+                array_map(fn($value) => "$value:", array_keys(config('filesystems.disks')))
+            );
     }
 }

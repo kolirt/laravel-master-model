@@ -1,129 +1,180 @@
 # Laravel Master Model
 
-Package will help for easing save relations and upload files.
+Laravel Master Model is a powerful package for the Laravel framework that simplifies working with models, particularly
+in **saving relationships** and **uploading files**.
 
-## Installation
+This package is designed for developers who want to optimize the process of working with databases and files, reducing
+code complexity and enhancing performance.
 
+## Structure
+
+- [Getting started](#getting-started)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Setup](#setup)
+- [Console commands](#console-commands)
+- [Use cases](#use-cases)
+  - [File saving](#file-saving)
+- [FAQ](#faq)
+- [License](#license)
+- [Other packages](#other-packages)
+
+<a href="https://www.buymeacoffee.com/kolirt" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/arial-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
+</a>
+
+## Getting started
+
+### Requirements
+
+- PHP >= 8.1
+- Laravel >= 10
+
+### Installation
+
+```bash
+composer require kolirt/laravel-master-model
 ```
-$ composer require kolirt/laravel-master-model
+
+### Setup
+
+Publish config file
+
+```bash
+php artisan master-model:install
 ```
 
-## Usage
-
-You need to use trait in your model from `Kolirt\MasterModel\Model`.
-
-## Example
-
-Provider.php
+Use the `MasterModel` trait in your models
 
 ```php
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
 use Kolirt\MasterModel\MasterModel;
 
-class Provider extends Model
+class Item extends Model
 {
+    use MasterModel;
+}
+```
 
+## Console commands
+
+- `master-model:install` - Install master model package
+- `master-model:publish-config` - Publish the config file
+
+## Use cases
+
+### File saving
+
+```php
+class Item extends Model
+{
     use MasterModel;
 
     protected $fillable = [
-        'name',
-        'city',
-        'address',
-        'postcode',
         'image',
-        'active',
     ];
-
-    protected $casts = [
-        'active' => 'boolean',
-    ];
-
-    public function agents()
-    {
-        return $this->hasMany(ProviderContact::class);
-    }
 }
 ```
 
-ProviderContact.php
+MasterModel automatically saves the file and deletes the old file, if it existed
 
 ```php
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-use Kolirt\MasterModel\MasterModel;
-
-class ProviderContact extends Model
-{
-
-    use MasterModel;
-
-    protected $fillable = [
-        'name',
-        'phone',
-        'email',
-        'position',
-        'active',
-    ];
-
-    protected $casts = [
-        'active' => 'boolean',
-    ];
-
-    public function provider()
-    {
-        return $this->belongsTo(Provider::class);
-    }
-}
-```
-
-ExampleController.php
-
-```php
-<?php
-
-namespace App\Http\Controllers\Api;
-
-use App\Http\Controllers\Controller;
-use App\Models\Provider;
 
 class ExampleController extends Controller
 {
-
-    public function index()
+    public function index(Request $request, $id)
     {
-        $data = [
-            'name' => 'Lang Ltd',
-            'city' => 'Little Rock',
-            'address' => '1231  Fittro Street',
-            'postcode' => '72210',
-            'image' => '', // UploadedFile or path to file
-            'active' => true,
-            'agents' => [ // relation
-                [
-                    'name' => 'Jose B. Pauli',
-                    'phone' => '602-697-8030',
-                    'email' => 'JoseBPauli@dayrep.com',
-                    'position' => 'Manager',
-                    'active' => true
-                ],
-                [
-                    'name' => 'Sherry B. Crider',
-                    'phone' => '301-967-7367',
-                    'email' => 'SherryBCrider@jourrapide.com',
-                    'position' => 'Bellhop',
-                    'active' => true
-                ]
-            ]
-        ];
+        $data = $request->validate([
+            'image' => 'required|file',
+        ]);
 
-        Provider::create($data);
+        $item = Item::query()->findOrFail($id);
+        $item->update($data);
     }
 }
 ```
+
+You can specify folder and disk for each file
+
+```php
+class Item extends Model
+{
+    use MasterModel;
+
+    protected $fillable = [
+        'image',
+    ];
+    
+    protected string $upload_model_folder = 'items';
+
+    protected array $upload_folders = [
+        'image' => 'image',
+    ];
+
+    protected array $upload_disks = [
+        'image' => 'public'
+    ];
+}
+```
+
+
+### Saving `HasOne` relationship
+
+```php
+class Item extends Model
+{
+    use MasterModel;
+
+    protected $fillable = [
+        'image',
+    ];
+    
+    public function phone(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ItemPhone::class);
+    }
+}
+```
+You can **save** `HasOne` relationship in the same way as a file. If relationship exists, it will be updated, otherwise it will be created
+
+```php
+class ExampleController extends Controller
+{
+    public function index(Request $request, $id)
+    {
+        $item = Item::query()->findOrFail($id);
+        $item->update([
+            'phone' => [
+                'number' => '1234567890'
+            ]
+        ]);
+    }
+}
+```
+
+You can also **delete** the relationship by setting it to `null`
+
+```php
+class ExampleController extends Controller
+{
+    public function index(Request $request, $id)
+    {
+        $item = Item::query()->findOrFail($id);
+        $item->update([
+            'phone' => null
+        ]);
+    }
+}
+```
+
+
+## FAQ
+
+Check closed [issues](https://github.com/kolirt/laravel-master-model/issues) to get answers for most asked questions
+
+## License
+
+[MIT](LICENSE.txt)
+
+## Other packages
+
+Check out my other packages on my [GitHub profile](https://github.com/kolirt)
