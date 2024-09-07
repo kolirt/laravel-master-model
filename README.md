@@ -15,6 +15,7 @@ code complexity and enhancing performance.
 - [Console commands](#console-commands)
 - [Use cases](#use-cases)
   - [File saving](#file-saving)
+  - [Saving `HasOne` relationship](#saving-hasone-relationship)
 - [FAQ](#faq)
 - [License](#license)
 - [Other packages](#other-packages)
