@@ -131,7 +131,7 @@ $item->update([
 ]);
 ```
 
-If you want the files in relations to be deleted when you delete a model, you need to load them first
+To have files deleted automatically, delete data through the model, not through the builder, and don't forget to load the necessary relations in which you want to delete files
 
 _If there are files in the relationship and the relationship is deleted not through the model, the files won't be deleted and will clog up storage_
 
