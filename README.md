@@ -119,6 +119,30 @@ class Item extends Model
 ```
 
 
+### Deleting files
+You can delete files by setting the field to `null`
+
+```php
+$item = Item::query()->first();
+
+$item->update([
+    'image' => null
+]);
+```
+
+If you want the files in relations to be deleted when you delete a model, you need to load them first
+
+_If there are files in the relationship and the relationship is deleted not through the model, the files won't be deleted and will clog up storage_
+
+```php
+$item = Item::query()->with(['phone', 'addresses'])->first();
+/**
+* All files in the model and in the loaded relations will be deleted
+ */
+$item->delete();
+```
+
+
 ### Saving `HasOne` relation
 You can **save** `HasOne` relation in the same way as a file. If relation exists, it will be updated, otherwise it will be created
 
