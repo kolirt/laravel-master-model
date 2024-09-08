@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/kolirt/laravel-master-model?tab=readme-ov-file#laravel-master-model
+    about: Check the documentation for guides and examples.
