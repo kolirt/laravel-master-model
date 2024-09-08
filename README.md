@@ -14,6 +14,7 @@ code complexity and enhancing performance.
 - [Console commands](#console-commands)
 - [Use cases](#use-cases)
   - [Saving files](#saving-files)
+  - [Deleting files](#deleting-files)
   - [Saving `HasOne` relation](#saving-hasone-relation)
   - [Saving `HasMany` relations](#saving-hasmany-relations)
   - [Saving `HasMany` relations with `sync` mode](#saving-hasmany-relations-with-sync-mode)
