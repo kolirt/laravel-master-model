@@ -15,9 +15,9 @@ code complexity and enhancing performance.
 - [Use cases](#use-cases)
   - [Saving files](#saving-files)
   - [Deleting files](#deleting-files)
-  - [Saving `HasOne` relation](#saving-hasone-relation)
-  - [Saving `HasMany` relations](#saving-hasmany-relations)
-  - [Saving `HasMany` relations with `sync` mode](#saving-hasmany-relations-with-sync-mode)
+  - [Saving `HasOne`, `MorphOne` relations](#saving-hasone-morphone-relations)
+  - [Saving `HasMany`, `MorphMany` relations](#saving-hasmany-morphmany-relations)
+  - [Saving `HasMany`, `MorphMany` relations with `sync` mode](#saving-hasmany-morphmany-relations-with-sync-mode)
 - [FAQ](#faq)
 - [License](#license)
 - [Other packages](#other-packages)
@@ -144,14 +144,14 @@ $item->delete();
 ```
 
 
-### Saving `HasOne` relation
-You can **save** `HasOne` relation in the same way as a file. If relation exists, it will be updated, otherwise it will be created
+### Saving `HasOne`, `MorphOne` relations
+You can **save** `HasOne`, `MorphOne` relations in the same way as a file. If relation exists, it will be updated, otherwise it will be created
 
 ```php
 $item = Item::query()->first();
 
 $item->update([
-    'phone' => [ // hasOne relation
+    'phone' => [ // hasOne, morphOne relation
         'number' => '1234567890'
     ]
 ]);
@@ -163,19 +163,18 @@ You can also **delete** the relation by setting it to `null`
 $item = Item::query()->first();
 
 $item->update([
-    'phone' => null // hasOne relation
+    'phone' => null // hasOne, morphOne relation
 ]);
 ```
 
-
-### Saving `HasMany` relations
-You can **save** `HasMany` relations in the same way as a file. If relations exists, it will be updated, otherwise it will be created
+### Saving `HasMany`, `MorphMany`  relations
+You can **save** `HasMany`, `MorphMany` relations in the same way as a file. If relations exists, it will be updated, otherwise it will be created
 
 ```php
 $item = Item::query()->first();
 
 $item->update([
-    'phones' => [ // hasMany relations
+    'phones' => [ // hasMany, morphMany relations
         [ // will be created
             'number' => '1234567890'
         ],
@@ -188,14 +187,14 @@ $item->update([
 ```
 
 
-### Saving `HasMany` relations with `sync` mode
-You can also **sync** `HasMany` relations. Unspecified relations will be deleted
+### Saving `HasMany`, `MorphMany` relations with `sync` mode
+You can also **sync** `HasMany`, `MorphMany` relations. Unspecified relations will be deleted
 
 ```php
 $item = Item::query()->first();
 
 $item->update([
-    'phones' => [ // hasMany relations
+    'phones' => [ // hasMany, morphMany relations
         'mode' => 'sync', // not specified relations will be deleted
         'value' => [
             [ // will be created

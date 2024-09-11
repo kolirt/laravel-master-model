@@ -88,22 +88,18 @@ trait MasterModel
         foreach ($attributes as $key => $value) {
             if ($this->isRelation($key)) {
                 $relation = $this->$key();
-                if (
-                    $relation instanceof \Illuminate\Database\Eloquent\Relations\HasOne
-                ) {
-                    $this->relations_to_save[] = [
-                        'relation_name' => $key,
-                        'relation' => $relation,
-                        'value' => $value
-                    ];
-                } else if (
-                    $relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany
-                ) {
-                    $this->relations_to_save[] = [
-                        'relation_name' => $key,
-                        'relation' => $relation,
-                        'value' => $value
-                    ];
+
+                switch (true) {
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\HasOne:
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\MorphOne:
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany:
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\MorphMany:
+                        $this->relations_to_save[] = [
+                            'relation_name' => $key,
+                            'relation' => $relation,
+                            'value' => $value
+                        ];
+                        break;
                 }
             }
         }
@@ -165,119 +161,123 @@ trait MasterModel
                     'value' => $value,
                 ] = $relation_to_save;
 
-                /*dd(
-                    $relation->getParentKey(),
-                    $relation->getForeignKeyName(),
-                    $relation->getLocalKeyName(),
-                    $relation->getExistenceCompareKey(),
-                    $relation->getQualifiedForeignKeyName(),
-                    $relation->getQualifiedParentKeyName(),
-                    $value,
-                );*/
+                switch (true) {
+                    /**
+                     * Save HasOne relation
+                     * Save MorphOne relation
+                     */
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\HasOne:
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\MorphOne:
+                        $parent = $relation->getParent();
 
-                /**
-                 * Save HasOne relation
-                 */
-                if (
-                    $relation instanceof \Illuminate\Database\Eloquent\Relations\HasOne
-                ) {
-                    $parent = $relation->getParent();
-
-                    if (is_null($value)) {
-                        if (
-                            $parent->relationLoaded($relation_name) &&
-                            $parent->getRelation($relation_name)
-                        ) {
-                            $parent->getRelation($relation_name)->delete();
-                            $this->unsetRelation($relation_name);
-                        } else {
-                            $relation->delete();
-                        }
-                    } else {
-                        if (
-                            $parent->relationLoaded($relation_name) &&
-                            $parent->getRelation($relation_name)
-                        ) {
-                            $parent->getRelation($relation_name)->update($value);
-                        } else {
-                            $relation_model = $relation->getRelated()->newQuery()
-                                ->where($relation->getForeignKeyName(), $relation->getParentKey())
-                                ->first();
-
-                            if ($relation_model) {
-                                $relation_model->update($value);
+                        if (is_null($value)) {
+                            if (
+                                $parent->relationLoaded($relation_name) &&
+                                $parent->getRelation($relation_name)
+                            ) {
+                                $parent->getRelation($relation_name)->delete();
+                                $this->unsetRelation($relation_name);
                             } else {
-                                $relation_model = $relation->create($value);
+                                $relation->delete();
                             }
-
-                            $this->setRelation($relation_name, $relation_model);
-                        }
-                    }
-
-                    continue;
-                }
-
-                /**
-                 * Save HasMany relation
-                 */
-                if (
-                    $relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany
-                ) {
-                    $mode = $value['mode'] ?? null;
-                    $value = $value['value'] ?? $value;
-
-                    $parent = $relation->getParent();
-                    $loaded_relations = match (true) {
-                        $parent->relationLoaded($relation_name) => $parent->getRelation($relation_name),
-                        $mode === 'sync' => $relation->get(),
-                        default => collect()
-                    };
-
-                    $values_to_update = array_filter($value, fn($item) => isset($item[$relation->getLocalKeyName()]));
-                    $new_values = array_filter($value, fn($item) => !isset($item[$relation->getLocalKeyName()]));
-
-                    $updated_items = collect();
-
-                    if (count($values_to_update)) {
-                        foreach ($values_to_update as $value_to_update) {
-                            $relation_model = $loaded_relations->firstWhere($relation->getLocalKeyName(), $value_to_update[$relation->getLocalKeyName()]);
-
-                            if (!$relation_model) {
-                                $relation_model = $relation
-                                    ->where($relation->getLocalKeyName(), $value_to_update[$relation->getLocalKeyName()])
-                                    ->first();
-                            }
-
-                            unset($value_to_update[$relation->getLocalKeyName()]);
-
-                            if ($relation_model) {
-                                $relation_model->update($value_to_update);
-                                $updated_items[] = $relation_model;
+                        } else {
+                            if (
+                                $parent->relationLoaded($relation_name) &&
+                                $parent->getRelation($relation_name)
+                            ) {
+                                $parent->getRelation($relation_name)->update($value);
                             } else {
-                                $new_values[] = $value_to_update;
+                                $relation_model = $relation->first();
+
+                                if ($relation_model) {
+                                    $relation_model->update($value);
+                                } else {
+                                    $relation_model = $relation->create($value);
+                                }
+
+                                $this->setRelation($relation_name, $relation_model);
                             }
                         }
-                    }
 
-                    if (count($new_values)) {
-                        $items = $relation->createMany($new_values);
-                        $loaded_relations->push(...$items);
-                        $updated_items->push(...$items);
-                    }
+                        break;
 
-                    if ($mode === 'sync') {
-                        $updated_items_keyed = collect($updated_items)->keyBy($relation->getLocalKeyName());
+                    /**
+                     * Save HasMany relation
+                     * Save MorphMany relation
+                     */
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany:
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\MorphMany:
+                        $mode = $value['mode'] ?? null;
+                        $value = key_exists('value', $value) ? $value['value'] : $value;
 
-                        $relations_to_delete = $loaded_relations->filter(function ($item) use ($relation, $updated_items_keyed) {
-                            return !$updated_items_keyed->has($item->getAttribute($relation->getLocalKeyName()));
-                        });
-                        $relations_to_delete->each->delete();
+                        $parent = $relation->getParent();
 
-                        $loaded_relations = $updated_items;
-                    }
+                        if (is_null($value)) {
+                            if ($mode === 'sync') {
+                                if (
+                                    $parent->relationLoaded($relation_name) &&
+                                    $parent->getRelation($relation_name)
+                                ) {
+                                    $parent->getRelation($relation_name)->each->delete();
+                                    $this->unsetRelation($relation_name);
+                                } else {
+                                    $relation->delete();
+                                }
+                            }
+                        } else {
+                            $loaded_relations = match (true) {
+                                $parent->relationLoaded($relation_name) => $parent->getRelation($relation_name),
+                                $mode === 'sync' => $relation->get(),
+                                default => collect()
+                            };
 
-                    $this->setRelation($relation_name, $loaded_relations);
-                    continue;
+                            $values_to_update = array_filter($value, fn($item) => isset($item[$relation->getLocalKeyName()]));
+                            $new_values = array_filter($value, fn($item) => !isset($item[$relation->getLocalKeyName()]));
+
+                            $updated_items = collect();
+
+                            if (count($values_to_update)) {
+                                foreach ($values_to_update as $value_to_update) {
+                                    $relation_model = $loaded_relations->firstWhere($relation->getLocalKeyName(), $value_to_update[$relation->getLocalKeyName()]);
+
+                                    if (!$relation_model) {
+                                        $relation_model = $relation
+                                            ->where($relation->getLocalKeyName(), $value_to_update[$relation->getLocalKeyName()])
+                                            ->first();
+                                    }
+
+                                    unset($value_to_update[$relation->getLocalKeyName()]);
+
+                                    if ($relation_model) {
+                                        $relation_model->update($value_to_update);
+                                        $updated_items[] = $relation_model;
+                                    } else {
+                                        $new_values[] = $value_to_update;
+                                    }
+                                }
+                            }
+
+                            if (count($new_values)) {
+                                $items = $relation->createMany($new_values);
+                                $loaded_relations->push(...$items);
+                                $updated_items->push(...$items);
+                            }
+
+                            if ($mode === 'sync') {
+                                $updated_items_keyed = collect($updated_items)->keyBy($relation->getLocalKeyName());
+
+                                $relations_to_delete = $loaded_relations->filter(function ($item) use ($relation, $updated_items_keyed) {
+                                    return !$updated_items_keyed->has($item->getAttribute($relation->getLocalKeyName()));
+                                });
+                                $relations_to_delete->each->delete();
+
+                                $loaded_relations = $updated_items;
+                            }
+
+                            $this->setRelation($relation_name, $loaded_relations);
+                        }
+
+                        break;
                 }
             }
         } else {
