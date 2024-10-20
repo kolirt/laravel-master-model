@@ -99,6 +99,7 @@ trait MasterModel
                             'relation' => $relation,
                             'value' => $value
                         ];
+                        unset($attributes[$key]);
                         break;
                 }
             }
