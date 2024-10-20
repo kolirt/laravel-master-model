@@ -312,19 +312,17 @@ trait MasterModel
         return $this->upload_disks[$key] ?? config('master-model.files.disk');
     }
 
-    /*private function hasUploadedFile(array $attributes): bool
+    public function responseFile(string $key, $name = null, array $headers = [], $disposition = 'inline')
     {
-        foreach ($attributes as $value) {
-            if ($value instanceof UploadedFile) {
-                return true;
-            }
+        $value = $this->getAttributeValue($key);
+
+        if (is_stored_file($value)) {
+            [$disk_name, $stored_file_path] = explode(':', $value);
+            return Storage::disk($disk_name)->response($stored_file_path, $name, $headers, $disposition);
         }
-        return false;
-    }*/
 
-    public function getImage()
-    {
-
+        abort(404);
     }
+
 
 }
