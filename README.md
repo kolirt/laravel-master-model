@@ -125,7 +125,7 @@ class Item extends Model
 
 
 ### Saving files from third-party resources
-You no longer need to worry about saving files from third-party resources, just save the `response` and MasterModel will save everything for you
+You no longer need to worry about saving files from third-party resources, just put the `response` and MasterModel will save everything for you
 
 ```php
 class ExampleController extends Controller
