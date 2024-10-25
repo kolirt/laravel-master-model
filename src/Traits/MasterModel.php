@@ -94,6 +94,7 @@ trait MasterModel
                     case $relation instanceof \Illuminate\Database\Eloquent\Relations\MorphOne:
                     case $relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany:
                     case $relation instanceof \Illuminate\Database\Eloquent\Relations\MorphMany:
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany:
                         $this->relations_to_save[] = [
                             'relation_name' => $key,
                             'relation' => $relation,
@@ -276,6 +277,21 @@ trait MasterModel
                             }
 
                             $this->setRelation($relation_name, $loaded_relations);
+                        }
+
+                        break;
+
+                    /**
+                     * Save BelongsToMany relation
+                     */
+                    case $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany:
+                        $mode = $value['mode'] ?? null;
+                        $value = key_exists('value', $value) ? $value['value'] : $value;
+
+                        if ($mode === 'sync') {
+                            $relation->sync($value);
+                        } else {
+                            $relation->syncWithoutDetaching($value);
                         }
 
                         break;

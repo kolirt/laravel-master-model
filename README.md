@@ -18,6 +18,9 @@ code complexity and enhancing performance.
   - [Saving `HasOne`, `MorphOne` relations](#saving-hasone-morphone-relations)
   - [Saving `HasMany`, `MorphMany` relations](#saving-hasmany-morphmany-relations)
   - [Saving `HasMany`, `MorphMany` relations with `sync` mode](#saving-hasmany-morphmany-relations-with-sync-mode)
+  - [Saving `BelongsToMany` relation](#saving-belongstomany-relation)
+  - [Saving `BelongsToMany` relation with `sync` mode](#saving-belongstomany-relation-with-sync-mode)
+  - [Response file](#response-file)
 - [FAQ](#faq)
 - [License](#license)
 - [Other packages](#other-packages)
@@ -167,6 +170,7 @@ $item->update([
 ]);
 ```
 
+
 ### Saving `HasMany`, `MorphMany`  relations
 You can **save** `HasMany`, `MorphMany` relations in the same way as a file. If relations exists, it will be updated, otherwise it will be created
 
@@ -207,6 +211,68 @@ $item->update([
         ]
     ]
 ]);
+```
+
+
+### Saving `BelongsToMany` relation
+
+```php
+$item = Item::query()->first();
+
+$item->update([
+    'categories' => [1, 2, 3] // belongsToMany relations
+]);
+
+$item->update([
+    'categories' => [ // belongsToMany relation
+        1 => ['name' => 'Category 1'], 
+        2 => ['name' => 'Category 2'], 
+        3 => ['name' => 'Category 3']
+    ]
+]);
+```
+
+
+### Saving `BelongsToMany` relation with `sync` mode
+You can **sync** the `BelongsToMany` relation. Everything that is not specified when saving will be deleted
+
+```php
+$item = Item::query()->first();
+
+$item->update([
+    'categories' => [ // belongsToMany relation
+        'mode' => 'sync', // not specified relations will be deleted
+        'value' => [1, 2, 3]
+    ]
+]);
+
+$item->update([
+    'categories' => [ // belongsToMany relation
+        'mode' => 'sync', // not specified relations will be deleted
+        'value' => [
+            1 => ['name' => 'Category 1'], 
+            2 => ['name' => 'Category 2'], 
+            3 => ['name' => 'Category 3']
+        ]
+    ]
+]);
+```
+
+
+### Response file
+Use the **responseFile** method to return a file in a controller
+
+```php
+class FileController extends Controller
+{
+
+    public function index()
+    {
+        $item = Item::query()->first();
+        return $item->responseFile('image');
+    }
+
+}
 ```
 
 
