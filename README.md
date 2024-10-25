@@ -260,7 +260,7 @@ $item->update([
 
 
 ### Response file
-Use the **responseFile** method to return a file in a controller
+Use the `responseFile` method to return a file in a controller
 
 ```php
 class FileController extends Controller
