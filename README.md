@@ -14,7 +14,7 @@ code complexity and enhancing performance.
 - [Console commands](#console-commands)
 - [Use cases](#use-cases)
   - [Saving files](#saving-files)
-  - [Saving file from HTTP request](#saving-file-from-http-request)
+  - [Saving files from third-party resources](#saving-files-from-third-party-resources)
   - [Deleting files](#deleting-files)
   - [Saving `HasOne`, `MorphOne` relations](#saving-hasone-morphone-relations)
   - [Saving `HasMany`, `MorphMany` relations](#saving-hasmany-morphmany-relations)
