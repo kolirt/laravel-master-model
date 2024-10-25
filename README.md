@@ -14,6 +14,7 @@ code complexity and enhancing performance.
 - [Console commands](#console-commands)
 - [Use cases](#use-cases)
   - [Saving files](#saving-files)
+  - [Saving file from HTTP request](#saving-file-from-http-request)
   - [Deleting files](#deleting-files)
   - [Saving `HasOne`, `MorphOne` relations](#saving-hasone-morphone-relations)
   - [Saving `HasMany`, `MorphMany` relations](#saving-hasmany-morphmany-relations)
@@ -119,6 +120,30 @@ class Item extends Model
     protected array $upload_disks = [
         'image' => 'public'
     ];
+}
+```
+
+
+### Saving files from third-party resources
+You no longer need to worry about saving files from third-party resources, just save the `response` and MasterModel will save everything for you
+
+```php
+class ExampleController extends Controller
+{
+    public function index($id)
+    {
+        $file1_url = 'https://png.pngtree.com/png-clipart/20230126/original/pngtree-fresh-red-apple-png-image_8930987.png';
+        $response = \Illuminate\Support\Facades\Http::get($file1_url);
+
+        $file2_url = 'https://cubanvr.com/wp-content/uploads/2023/07/ai-image-generators.webp';
+        $client = new \GuzzleHttp\Client();
+        $response2 = $client->get($file2_url);
+
+        Item::create([
+            'image' => $response,
+            'image2' => $response2
+        ]);
+    }
 }
 ```
 

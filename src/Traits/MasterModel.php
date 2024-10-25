@@ -3,7 +3,6 @@
 namespace Kolirt\MasterModel\Traits;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 trait MasterModel
@@ -111,11 +110,53 @@ trait MasterModel
 
     public function save(array $options = [])
     {
-
         foreach ($this->fillableFromArray($this->getAttributes()) as $key => $value) {
             $origin_value = $this->getOriginal($key);
 
-            if ($value instanceof UploadedFile) {
+
+            if ($value instanceof \Illuminate\Http\Client\Response) {
+                if ($value->successful()) {
+                    $stream = tmpfile();
+                    fwrite($stream, $value->body());
+                    $uri = stream_get_meta_data($stream)['uri'];
+
+                    $value = new \Illuminate\Http\UploadedFile(
+                        $uri,
+                        basename($uri),
+                        $value->getHeaderLine('Content-Type'),
+                        null,
+                        true
+                    );
+
+                    $this->setAttribute($key, $value);
+                } else {
+                    $this->setAttribute($key, $origin_value);
+                    $value = $origin_value;
+                }
+            }
+
+            if ($value instanceof \GuzzleHttp\Psr7\Response) {
+                if ($value->getStatusCode() >= 200 && $value->getStatusCode() < 300) {
+                    $stream = tmpfile();
+                    fwrite($stream, $value->getBody()->getContents());
+                    $uri = stream_get_meta_data($stream)['uri'];
+
+                    $value = new \Illuminate\Http\UploadedFile(
+                        $uri,
+                        basename($uri),
+                        $value->getHeaderLine('Content-Type'),
+                        null,
+                        true
+                    );
+
+                    $this->setAttribute($key, $value);
+                } else {
+                    $this->setAttribute($key, $origin_value);
+                    $value = $origin_value;
+                }
+            }
+
+            if ($value instanceof \Illuminate\Http\UploadedFile) {
                 if ($value->isValid()) {
                     $disk_name = $this->getDisk($key);
 
@@ -127,8 +168,12 @@ trait MasterModel
                         'value' => $stored_file_path,
                         'old_value' => $origin_value
                     ];
+                } else {
+                    $this->setAttribute($key, $origin_value);
+                    $value = $origin_value;
                 }
             }
+
 
             if ($value != $origin_value) {
                 if (is_stored_file($origin_value)) {
