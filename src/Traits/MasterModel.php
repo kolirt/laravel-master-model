@@ -12,6 +12,18 @@ trait MasterModel
     protected array $saved_files = [];
     protected array $files_to_delete = [];
 
+    public function responseFile(string $key, $name = null, array $headers = [], $disposition = 'inline')
+    {
+        $value = $this->getAttributeValue($key);
+
+        if (is_stored_file($value)) {
+            [$disk_name, $stored_file_path] = explode(':', $value);
+            return Storage::disk($disk_name)->response($stored_file_path, $name, $headers, $disposition);
+        }
+
+        abort(404);
+    }
+
     public function delete(): ?bool
     {
         $need_delete = false;
@@ -188,7 +200,15 @@ trait MasterModel
             }
         }
 
-        $saved = parent::save($options);
+        try {
+            $saved = parent::save($options);
+        } catch (\Exception $e) {
+            /**
+             * Rollback the action of saving files
+             */
+            $this->revertSavingFiles();
+            throw $e;
+        }
 
         if ($saved) {
             /**
@@ -344,12 +364,9 @@ trait MasterModel
             }
         } else {
             /**
-             * Rollback saved files
+             * Rollback the action of saving files
              */
-            foreach ($this->saved_files as $file) {
-                Storage::disk($file['disk'])->delete($file['value']);
-                $this->setAttribute($file['key'], $file['old_value']);
-            }
+            $this->revertSavingFiles();
         }
 
         $this->relations_to_save = [];
@@ -357,6 +374,20 @@ trait MasterModel
         $this->files_to_delete = [];
 
         return $saved;
+    }
+
+    /**
+     * Rollback the action of saving files
+     */
+    private function revertSavingFiles(): void
+    {
+        /**
+         * Rollback saved files
+         */
+        foreach ($this->saved_files as $file) {
+            Storage::disk($file['disk'])->delete($file['value']);
+            $this->setAttribute($file['key'], $file['old_value']);
+        }
     }
 
     private function getUploadFolder($key): string
@@ -372,18 +403,5 @@ trait MasterModel
     {
         return $this->upload_disks[$key] ?? config('master-model.files.disk');
     }
-
-    public function responseFile(string $key, $name = null, array $headers = [], $disposition = 'inline')
-    {
-        $value = $this->getAttributeValue($key);
-
-        if (is_stored_file($value)) {
-            [$disk_name, $stored_file_path] = explode(':', $value);
-            return Storage::disk($disk_name)->response($stored_file_path, $name, $headers, $disposition);
-        }
-
-        abort(404);
-    }
-
 
 }
