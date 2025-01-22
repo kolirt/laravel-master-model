@@ -18,7 +18,10 @@ trait MasterModel
 
         if (is_stored_file($value)) {
             [$disk_name, $stored_file_path] = explode(':', $value);
-            return Storage::disk($disk_name)->response($stored_file_path, $name, $headers, $disposition);
+
+            if (Storage::disk($disk_name)->exists($stored_file_path))  {
+                return Storage::disk($disk_name)->response($stored_file_path, $name, $headers, $disposition);
+            }
         }
 
         abort(404);
