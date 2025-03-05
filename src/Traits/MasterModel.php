@@ -12,6 +12,21 @@ trait MasterModel
     protected array $saved_files = [];
     protected array $files_to_delete = [];
 
+    public function getFilePath(string $key)
+    {
+        $value = $this->getAttributeValue($key);
+
+        if (is_stored_file($value)) {
+            [$disk_name, $stored_file_path] = explode(':', $value);
+
+            if (Storage::disk($disk_name)->exists($stored_file_path))  {
+                return Storage::disk($disk_name)->path($stored_file_path);
+            }
+        }
+
+        return null;
+    }
+
     public function responseFile(string $key, $name = null, array $headers = [], $disposition = 'inline')
     {
         $value = $this->getAttributeValue($key);
