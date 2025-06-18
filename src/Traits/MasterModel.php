@@ -370,6 +370,7 @@ trait MasterModel
                     case $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany:
                         $mode = $value['mode'] ?? null;
                         $value = key_exists('value', $value) ? $value['value'] : $value;
+                        if (is_null($value)) $value = [];
 
                         if ($mode === 'sync') {
                             $relation->sync($value);
